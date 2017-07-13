@@ -20,8 +20,7 @@ cc_configure()
 Add `build --crosstool_top=@standalone_local_config_cc//:toolchain` to your bazelrc file.
 
 ### Using [new_local_repository](https://docs.bazel.build/versions/master/be/workspace.html#new_local_repository) rule
-Download this repository to your machine.
-Adding the following to your WORKSPACE file:
+Download this repository to your machine, add the following to your WORKSPACE file:
 ```python
 new_local_repository(
     name = "standalone_cc_toolchain",
