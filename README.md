@@ -4,7 +4,7 @@ A standalone Windows CROSSTOOL for Bazel
 # How to use it
 
 ### Using [new_http_archive](https://docs.bazel.build/versions/master/be/workspace.html#new_http_archive) rule
-Add the following to your WORKSPACE file:
+Add the following to your **WORKSPACE** file:
 ```python
 new_http_archive(
     name = "standalone_cc_toolchain",
@@ -17,10 +17,10 @@ load("@standalone_cc_toolchain//:cc_configure.bzl", "cc_configure")
 
 cc_configure()
 ```
-Add `build --crosstool_top=@standalone_local_config_cc//:toolchain` to your bazelrc file.
+Add `build --crosstool_top=@standalone_local_config_cc//:toolchain` to your **bazelrc** file.
 
 ### Using [new_local_repository](https://docs.bazel.build/versions/master/be/workspace.html#new_local_repository) rule
-Download this repository to your machine, add the following to your WORKSPACE file:
+Download this repository to your machine, add the following to your **WORKSPACE** file:
 ```python
 new_local_repository(
     name = "standalone_cc_toolchain",
@@ -33,4 +33,4 @@ load("@standalone_cc_toolchain//:cc_configure.bzl", "cc_configure")
 cc_configure()
 ```
 
-Add `build --crosstool_top=@standalone_local_config_cc//:toolchain` to your bazelrc file.
+Add `build --crosstool_top=@standalone_local_config_cc//:toolchain` to your **bazelrc** file.
