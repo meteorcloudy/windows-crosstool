@@ -3,7 +3,7 @@ A standalone Windows CROSSTOOL for Bazel
 
 # How to use it
 
-## Using `new_http_archive` rule
+### Using [new_http_archive](https://docs.bazel.build/versions/master/be/workspace.html#new_http_archive) rule
 Add the following to your WORKSPACE file:
 ```python
 new_http_archive(
@@ -19,13 +19,13 @@ cc_configure()
 ```
 Add `build --crosstool_top=@standalone_local_config_cc//:toolchain` to your bazelrc file.
 
-## Using `new_local_repository` rule
-Download this repository to your machine
+### Using [new_local_repository](https://docs.bazel.build/versions/master/be/workspace.html#new_local_repository) rule
+Download this repository to your machine.
 Adding the following to your WORKSPACE file:
 ```python
 new_local_repository(
     name = "standalone_cc_toolchain",
-    path = "C:/tools/msys64/home/pcloudy/workspace/windows-crosstool",
+    path = "<path>/<to>/<your>/windows-crosstool",
     build_file_content = "",
 )
 
