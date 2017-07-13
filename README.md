@@ -4,7 +4,7 @@ A standalone Windows CROSSTOOL for Bazel
 # How to use it
 
 ### Using [new_http_archive](https://docs.bazel.build/versions/master/be/workspace.html#new_http_archive) rule
-Add the following to your **WORKSPACE** file:
+Add the following to your **WORKSPACE** file, replace `<commit-number>` with the one you want to point to:
 ```python
 new_http_archive(
     name = "standalone_cc_toolchain",
