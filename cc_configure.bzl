@@ -44,4 +44,3 @@ cc_autoconf = repository_rule(
 def cc_configure():
   """A C++ configuration rules that generate the crosstool file."""
   cc_autoconf(name="standalone_local_config_cc")
-  native.bind(name="cc_toolchain", actual="@standalone_local_config_cc//:toolchain")
