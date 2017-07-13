@@ -321,7 +321,6 @@ def configure_windows_toolchain(repository_ctx):
   tpl(repository_ctx, "CROSSTOOL", {
       "%{cpu}": "x64_windows",
       "%{default_toolchain_name}": "msvc_x64",
-      "%{toolchain_name}": "msys_x64",
       "%{msvc_env_tmp}": escaped_tmp_dir,
       "%{msvc_env_path}": escaped_paths,
       "%{msvc_env_include}": escaped_include_paths,
