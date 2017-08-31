@@ -59,7 +59,7 @@ toolchain {
   }
   supports_gold_linker: false
   supports_start_end_lib: false
-  supports_interface_shared_objects: false
+  supports_interface_shared_objects: true
   supports_incremental_linker: false
   supports_normalizing_ar: true
   needsPic: false
@@ -241,6 +241,14 @@ toolchain {
   }
 
   feature {
+    name: 'has_configured_linker_path'
+  }
+
+  feature {
+    name: 'no_stripping'
+  }
+
+  feature {
     name: "preprocessor_defines"
     flag_set {
       action: "preprocess-assemble"
@@ -343,6 +351,7 @@ toolchain {
     implies: 'linker_param_file'
     implies: 'msvc_env'
     implies: 'use_linker'
+    implies: 'no_stripping'
   }
 
   action_config {
@@ -361,6 +370,9 @@ toolchain {
     implies: 'linker_param_file'
     implies: 'msvc_env'
     implies: 'use_linker'
+    implies: 'has_configured_linker_path'
+    implies: 'no_stripping'
+    implies: 'windows_export_all_symbols'
   }
 
   action_config {
@@ -490,12 +502,11 @@ toolchain {
   feature {
     name: 'input_param_flags'
     flag_set {
-      expand_if_all_available: 'library_search_directories'
+      expand_if_all_available: 'interface_library_output_path'
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
       flag_group {
-        iterate_over: 'library_search_directories'
-        flag: "-L%{library_search_directories}"
+        flag: "/IMPLIB:%{interface_library_output_path}"
       }
     }
     flag_set {
@@ -746,6 +757,23 @@ toolchain {
     implies: 'link_crt_library'
   }
 
-%{compilation_mode_content}
+  feature {
+    name: 'windows_export_all_symbols'
+    flag_set {
+      expand_if_all_available: 'def_file_output_path'
+      action: 'c++-link-executable'
+      action: 'c++-link-dynamic-library'
+      flag_group {
+        flag: "/DEF:%{def_file_output_path}"
+      }
+    }
+  }
 
+  feature {
+    name: 'no_windows_export_all_symbols'
+  }
+
+  # linking_mode_flags { mode: DYNAMIC }
+
+%{compilation_mode_content}
 }
