@@ -59,7 +59,7 @@ toolchain {
   }
   supports_gold_linker: false
   supports_start_end_lib: false
-  supports_interface_shared_objects: true
+  supports_interface_shared_objects: false
   supports_incremental_linker: false
   supports_normalizing_ar: true
   needsPic: false
@@ -207,12 +207,6 @@ toolchain {
     }
   }
 
-  # Stop adding any flag for dotD file, Bazel knows how to parse the output of /showIncludes option
-  # TODO(bazel-team): Remove this empty feature. https://github.com/bazelbuild/bazel/issues/2868
-  feature {
-    name: 'dependency_file'
-  }
-
   # Tell Bazel to parse the output of /showIncludes
   feature {
     name: 'parse_showincludes'
@@ -230,22 +224,9 @@ toolchain {
     }
   }
 
-  # Stop passing -frandom-seed option
-  feature {
-    name: 'random_seed'
-  }
-
   # This feature is just for enabling flag_set in action_config for -c and -o options during the transitional period
   feature {
     name: 'compile_action_flags_in_flag_set'
-  }
-
-  feature {
-    name: 'has_configured_linker_path'
-  }
-
-  feature {
-    name: 'no_stripping'
   }
 
   feature {
@@ -351,7 +332,6 @@ toolchain {
     implies: 'linker_param_file'
     implies: 'msvc_env'
     implies: 'use_linker'
-    implies: 'no_stripping'
   }
 
   action_config {
@@ -370,9 +350,6 @@ toolchain {
     implies: 'linker_param_file'
     implies: 'msvc_env'
     implies: 'use_linker'
-    implies: 'has_configured_linker_path'
-    implies: 'no_stripping'
-    implies: 'windows_export_all_symbols'
   }
 
   action_config {
@@ -502,11 +479,12 @@ toolchain {
   feature {
     name: 'input_param_flags'
     flag_set {
-      expand_if_all_available: 'interface_library_output_path'
+      expand_if_all_available: 'library_search_directories'
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
       flag_group {
-        flag: "/IMPLIB:%{interface_library_output_path}"
+        iterate_over: 'library_search_directories'
+        flag: "-L%{library_search_directories}"
       }
     }
     flag_set {
@@ -757,23 +735,6 @@ toolchain {
     implies: 'link_crt_library'
   }
 
-  feature {
-    name: 'windows_export_all_symbols'
-    flag_set {
-      expand_if_all_available: 'def_file_output_path'
-      action: 'c++-link-executable'
-      action: 'c++-link-dynamic-library'
-      flag_group {
-        flag: "/DEF:%{def_file_output_path}"
-      }
-    }
-  }
-
-  feature {
-    name: 'no_windows_export_all_symbols'
-  }
-
-  # linking_mode_flags { mode: DYNAMIC }
-
 %{compilation_mode_content}
+
 }
