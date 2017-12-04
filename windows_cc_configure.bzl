@@ -119,7 +119,7 @@ def _find_vc_path(repository_ctx):
             vc_dir = line[line.find("REG_SZ") + len("REG_SZ"):].strip() + suffix
 
   if not vc_dir:
-    auto_configure_fail("Visual C++ build tools not found on your machine.")
+    return "visual-studio-not-found"
   auto_configure_warning("Visual C++ build tools found at %s" % vc_dir)
   return vc_dir
 
@@ -141,7 +141,7 @@ def _find_vcvarsall_bat_script(repository_ctx, vc_path):
     vcvarsall = vc_path + "\\VCVARSALL.BAT"
 
   if not repository_ctx.path(vcvarsall).exists:
-    auto_configure_fail("vcvarsall.bat doesn't exist, please check your VC++ installation")
+    auto_configure_fail(vcvarsall + " doesn't exist, please check your VC++ installation")
   return vcvarsall
 
 
@@ -157,7 +157,7 @@ def _find_env_vars(repository_ctx, vc_path):
   envs = execute(repository_ctx, ["./get_env.bat"], environment=env).split(",")
   env_map = {}
   for env in envs:
-    key, value = env.split("=")
+    key, value = env.split("=", 1)
     env_map[key] = escape_string(value.replace("\\", "\\\\"))
   return env_map
 
@@ -195,32 +195,6 @@ def _is_support_whole_archive(repository_ctx, vc_path):
   linker = _find_msvc_tool(repository_ctx, vc_path, "link.exe")
   result = execute(repository_ctx, [linker], expect_failure = True)
   return result.find("/WHOLEARCHIVE") != -1
-
-
-def _is_using_dynamic_crt(repository_ctx):
-  """Returns True if USE_DYNAMIC_CRT is set to 1."""
-  env = repository_ctx.os.environ
-  return "USE_DYNAMIC_CRT" in env and env["USE_DYNAMIC_CRT"] == "1"
-
-
-def _get_crt_option(repository_ctx, debug = False):
-  """Get the CRT option, default is /MT and /MTd."""
-  crt_option = "/MT"
-  if _is_using_dynamic_crt(repository_ctx):
-    crt_option = "/MD"
-  if debug:
-    crt_option += "d"
-  return crt_option
-
-
-def _get_crt_library(repository_ctx, debug = False):
-  """Get the CRT library to link, default is libcmt.lib and libcmtd.lib."""
-  crt_library = "libcmt"
-  if _is_using_dynamic_crt(repository_ctx):
-    crt_library = "msvcrt"
-  if debug:
-    crt_library += "d"
-  return crt_library + ".lib"
 
 
 def _is_use_msvc_wrapper(repository_ctx):
@@ -271,6 +245,24 @@ def configure_windows_toolchain(repository_ctx):
   repository_ctx.symlink(Label("//:BUILD.static"), "BUILD")
 
   vc_path = _find_vc_path(repository_ctx)
+  if vc_path == "visual-studio-not-found":
+    vc_path_error_script = "vc_path_not_found.bat"
+    repository_ctx.symlink(Label("@bazel_tools//tools/cpp:vc_path_not_found.bat"), vc_path_error_script)
+    tpl(repository_ctx, "CROSSTOOL", {
+        "%{cpu}": "x64_windows",
+        "%{default_toolchain_name}": "msvc_x64",
+        "%{msvc_env_tmp}": "",
+        "%{msvc_env_path}": "",
+        "%{msvc_env_include}": "",
+        "%{msvc_env_lib}": "",
+        "%{msvc_cl_path}": vc_path_error_script,
+        "%{msvc_link_path}": vc_path_error_script,
+        "%{msvc_lib_path}": vc_path_error_script,
+        "%{compilation_mode_content}": "",
+        "%{cxx_builtin_include_directory}": "",
+    })
+    return
+
   env = _find_env_vars(repository_ctx, vc_path)
   escaped_paths = escape_string(env["PATH"])
   escaped_include_paths = escape_string(env["INCLUDE"])
@@ -331,9 +323,5 @@ def configure_windows_toolchain(repository_ctx):
       "%{msvc_link_path}": msvc_link_path,
       "%{msvc_lib_path}": msvc_lib_path,
       "%{compilation_mode_content}": compilation_mode_content,
-      "%{crt_option}": _get_crt_option(repository_ctx),
-      "%{crt_debug_option}": _get_crt_option(repository_ctx, debug=True),
-      "%{crt_library}": _get_crt_library(repository_ctx),
-      "%{crt_debug_library}": _get_crt_library(repository_ctx, debug=True),
       "%{cxx_builtin_include_directory}": "\n".join(escaped_cxx_include_directories),
   })
