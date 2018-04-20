@@ -15,8 +15,8 @@ toolchain {
   abi_version: "local"
   abi_libc_version: "local"
   target_cpu: "x64_windows"
-  compiler: "cl"
-  target_libc: "msvcrt140"
+  compiler: "msvc-cl"
+  target_libc: "msvcrt"
   default_python_version: "python2.7"
 
 %{cxx_builtin_include_directory}
@@ -24,6 +24,10 @@ toolchain {
   tool_path {
     name: "ar"
     path: "%{msvc_lib_path}"
+  }
+  tool_path {
+    name: "ml"
+    path: "%{msvc_ml_path}"
   }
   tool_path {
     name: "cpp"
@@ -88,7 +92,8 @@ toolchain {
   compiler_flag: "/Gy"
   # Use string pooling.
   compiler_flag: "/GF"
-  # Catch both asynchronous (structured) and synchronous (C++) exceptions.
+  # Catch C++ exceptions only and tell the compiler to assume that functions declared
+  # as extern "C" never throw a C++ exception.
   compiler_flag: "/EHsc"
 
   # Globally disabled warnings.
@@ -121,25 +126,17 @@ toolchain {
       action: "preprocess-assemble"
       action: "c++-link-executable"
       action: "c++-link-dynamic-library"
+      action: "c++-link-nodeps-dynamic-library"
       action: "c++-link-static-library"
-      action: "c++-link-alwayslink-static-library"
-      action: "c++-link-pic-static-library"
-      action: "c++-link-alwayslink-pic-static-library"
       flag_group {
         flag: "/nologo"
       }
     }
   }
 
-  # This feature is just for enabling flag_set in action_config for -c and -o options during the transitional period
-  feature {
-    name: 'compile_action_flags_in_flag_set'
-  }
-
   feature {
     name: 'has_configured_linker_path'
   }
-
 
   # This feature indicates strip is not supported, building stripped binary will just result a copy of orignial binary
   feature {
@@ -155,6 +152,26 @@ toolchain {
 
   feature {
     name: 'copy_dynamic_libraries_to_binary'
+  }
+
+  action_config {
+    config_name: 'assemble'
+    action_name: 'assemble'
+    tool {
+      tool_path: '%{msvc_ml_path}'
+    }
+    flag_set {
+      expand_if_all_available: 'output_object_file'
+      flag_group {
+        flag: '/Fo%{output_object_file}'
+        flag: '/Zi'
+        flag: '/c'
+        flag: '%{source_file}'
+      }
+    }
+    implies: 'nologo'
+    implies: 'msvc_env'
+    implies: 'sysroot'
   }
 
   action_config {
@@ -273,7 +290,29 @@ toolchain {
     implies: 'use_linker'
     implies: 'no_stripping'
     implies: 'has_configured_linker_path'
+    implies: 'def_file'
   }
+
+  action_config {
+      config_name: 'c++-link-nodeps-dynamic-library'
+      action_name: 'c++-link-nodeps-dynamic-library'
+      tool {
+        tool_path: '%{msvc_link_path}'
+      }
+      implies: 'nologo'
+      implies: 'shared_flag'
+      implies: 'linkstamps'
+      implies: 'output_execpath_flags'
+      implies: 'input_param_flags'
+      implies: 'legacy_link_flags'
+      implies: 'linker_subsystem_flag'
+      implies: 'linker_param_file'
+      implies: 'msvc_env'
+      implies: 'use_linker'
+      implies: 'no_stripping'
+      implies: 'has_configured_linker_path'
+      implies: 'def_file'
+    }
 
   action_config {
     config_name: 'c++-link-static-library'
@@ -288,65 +327,12 @@ toolchain {
     implies: 'msvc_env'
   }
 
-  action_config {
-    config_name: 'c++-link-alwayslink-static-library'
-    action_name: 'c++-link-alwayslink-static-library'
-    tool {
-      tool_path: '%{msvc_lib_path}'
-    }
-    implies: 'nologo'
-    implies: 'archiver_flags'
-    implies: 'input_param_flags'
-    implies: 'linker_param_file'
-    implies: 'msvc_env'
-  }
-
-  # TODO(pcloudy): The following action_config is listed in MANDATORY_LINK_TARGET_TYPES.
-  # But do we really need them on Windows?
-  action_config {
-    config_name: 'c++-link-pic-static-library'
-    action_name: 'c++-link-pic-static-library'
-    tool {
-      tool_path: '%{msvc_lib_path}'
-    }
-    implies: 'nologo'
-    implies: 'archiver_flags'
-    implies: 'input_param_flags'
-    implies: 'linker_param_file'
-    implies: 'msvc_env'
-  }
-
-  action_config {
-    config_name: 'c++-link-alwayslink-pic-static-library'
-    action_name: 'c++-link-alwayslink-pic-static-library'
-    tool {
-      tool_path: '%{msvc_lib_path}'
-    }
-    implies: 'nologo'
-    implies: 'archiver_flags'
-    implies: 'input_param_flags'
-    implies: 'linker_param_file'
-    implies: 'msvc_env'
-  }
-
-  action_config {
-    config_name: 'c++-link-interface-dynamic-library'
-    action_name: 'c++-link-interface-dynamic-library'
-    tool {
-      tool_path: '%{msvc_lib_path}'
-    }
-    implies: 'nologo'
-    implies: 'linker_param_file'
-    implies: 'msvc_env'
-  }
-
   # TODO(b/65151735): Remove legacy_compile_flags feature when legacy fields are
   # not used in this crosstool
   feature {
     name: 'legacy_compile_flags'
     flag_set {
       expand_if_all_available: 'legacy_compile_flags'
-      action: 'assemble'
       action: 'preprocess-assemble'
       action: 'c-compile'
       action: 'c++-compile'
@@ -374,10 +360,8 @@ toolchain {
       action: "preprocess-assemble"
       action: "c++-link-executable"
       action: "c++-link-dynamic-library"
+      action: "c++-link-nodeps-dynamic-library"
       action: "c++-link-static-library"
-      action: "c++-link-alwayslink-static-library"
-      action: "c++-link-pic-static-library"
-      action: "c++-link-alwayslink-pic-static-library"
       env_entry {
         key: "PATH"
         value: "%{msvc_env_path}"
@@ -406,6 +390,7 @@ toolchain {
     env_set {
       action: "c++-link-executable"
       action: "c++-link-dynamic-library"
+      action: "c++-link-nodeps-dynamic-library"
       env_entry {
         key: "USE_LINKER"
         value: "1"
@@ -416,6 +401,7 @@ toolchain {
   feature {
     name: 'include_paths'
     flag_set {
+      action: "assemble"
       action: 'preprocess-assemble'
       action: 'c-compile'
       action: 'c++-compile'
@@ -440,6 +426,7 @@ toolchain {
   feature {
     name: "preprocessor_defines"
     flag_set {
+      action: "assemble"
       action: "preprocess-assemble"
       action: "c-compile"
       action: "c++-compile"
@@ -457,7 +444,6 @@ toolchain {
   feature {
     name: 'parse_showincludes'
     flag_set {
-      action: 'assemble'
       action: 'preprocess-assemble'
       action: 'c-compile'
       action: 'c++-compile'
@@ -485,6 +471,7 @@ toolchain {
     name: 'shared_flag'
     flag_set {
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         flag: '/DLL'
       }
@@ -496,6 +483,7 @@ toolchain {
     flag_set {
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       expand_if_all_available: 'linkstamp_paths'
       flag_group {
         iterate_over: 'linkstamp_paths'
@@ -510,6 +498,7 @@ toolchain {
       expand_if_all_available: 'output_execpath'
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         flag: '/OUT:%{output_execpath}'
       }
@@ -521,9 +510,6 @@ toolchain {
     flag_set {
       expand_if_all_available: 'output_execpath'
       action: 'c++-link-static-library'
-      action: 'c++-link-alwayslink-static-library'
-      action: 'c++-link-pic-static-library'
-      action: 'c++-link-alwayslink-pic-static-library'
       flag_group {
         flag: '/OUT:%{output_execpath}'
       }
@@ -535,6 +521,7 @@ toolchain {
     flag_set {
       expand_if_all_available: 'interface_library_output_path'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         flag: "/IMPLIB:%{interface_library_output_path}"
       }
@@ -543,6 +530,7 @@ toolchain {
       expand_if_all_available: 'libopts'
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         iterate_over: 'libopts'
         flag: '%{libopts}'
@@ -552,10 +540,8 @@ toolchain {
       expand_if_all_available: 'libraries_to_link'
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       action: 'c++-link-static-library'
-      action: 'c++-link-alwayslink-static-library'
-      action: 'c++-link-pic-static-library'
-      action: 'c++-link-alwayslink-pic-static-library'
       flag_group {
         iterate_over: 'libraries_to_link'
         flag_group {
@@ -647,6 +633,7 @@ toolchain {
     flag_set {
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         flag: '/SUBSYSTEM:CONSOLE'
       }
@@ -664,6 +651,7 @@ toolchain {
       expand_if_all_available: 'legacy_link_flags'
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         iterate_over: 'legacy_link_flags'
         flag: '%{legacy_link_flags}'
@@ -677,10 +665,8 @@ toolchain {
       expand_if_all_available: 'linker_param_file'
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       action: 'c++-link-static-library'
-      action: 'c++-link-alwayslink-static-library'
-      action: 'c++-link-pic-static-library'
-      action: 'c++-link-alwayslink-pic-static-library'
       flag_group {
         flag: '@%{linker_param_file}'
       }
@@ -703,6 +689,7 @@ toolchain {
     flag_set {
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         flag: "/DEFAULTLIB:libcmt.lib"
       }
@@ -723,6 +710,7 @@ toolchain {
     flag_set {
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         flag: "/DEFAULTLIB:msvcrt.lib"
       }
@@ -743,6 +731,7 @@ toolchain {
     flag_set {
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         flag: "/DEFAULTLIB:libcmtd.lib"
       }
@@ -762,6 +751,7 @@ toolchain {
     flag_set {
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         flag: "/DEFAULTLIB:msvcrtd.lib"
       }
@@ -777,13 +767,15 @@ toolchain {
       flag_group {
         flag: "/Od"
         flag: "/Z7"
+        flag: "/DDEBUG"
       }
     }
     flag_set {
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
-        flag: "/DEBUG:FULL"
+        flag: "%{dbg_mode_debug}"
         flag: "/INCREMENTAL:NO"
       }
     }
@@ -798,13 +790,15 @@ toolchain {
       flag_group {
         flag: "/Od"
         flag: "/Z7"
+        flag: "/DDEBUG"
       }
     }
     flag_set {
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
-        flag: "/DEBUG:FASTLINK"
+        flag: "%{fastbuild_mode_debug}"
         flag: "/INCREMENTAL:NO"
       }
     }
@@ -818,6 +812,7 @@ toolchain {
       action: 'c++-compile'
       flag_group {
         flag: "/O2"
+        flag: "/DNDEBUG"
       }
     }
   }
@@ -826,7 +821,6 @@ toolchain {
     name: 'user_compile_flags'
     flag_set {
       expand_if_all_available: 'user_compile_flags'
-      action: 'assemble'
       action: 'preprocess-assemble'
       action: 'c-compile'
       action: 'c++-compile'
@@ -855,6 +849,7 @@ toolchain {
       action: 'c++-module-codegen'
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         iterate_over: 'sysroot'
         flag: '--sysroot=%{sysroot}'
@@ -866,7 +861,6 @@ toolchain {
     name: 'unfiltered_compile_flags'
     flag_set {
       expand_if_all_available: 'unfiltered_compile_flags'
-      action: 'assemble'
       action: 'preprocess-assemble'
       action: 'c-compile'
       action: 'c++-compile'
@@ -882,11 +876,12 @@ toolchain {
   }
 
   feature {
-    name: 'windows_export_all_symbols'
+    name : 'def_file',
     flag_set {
       expand_if_all_available: 'def_file_path'
       action: 'c++-link-executable'
       action: 'c++-link-dynamic-library'
+      action: "c++-link-nodeps-dynamic-library"
       flag_group {
         flag: "/DEF:%{def_file_path}"
         # We can specify a different DLL name in DEF file, /ignore:4070 suppresses
@@ -895,6 +890,10 @@ toolchain {
         flag: "/ignore:4070"
       }
     }
+  }
+
+  feature {
+    name: 'windows_export_all_symbols'
   }
 
   feature {
