@@ -17,7 +17,7 @@ load("@standalone_cc_toolchain//:cc_configure.bzl", "cc_configure")
 
 cc_configure()
 ```
-Add `build --crosstool_top=@standalone_local_config_cc//:toolchain` to your **bazelrc** file.
+Add `build --crosstool_top=@standalone_local_config_cc//:toolchain --host_crosstool_top=@standalone_local_config_cc//:toolchain` to your **bazelrc** file.
 
 ### Using [local_repository](https://docs.bazel.build/versions/master/be/workspace.html#local_repository) rule
 Download this repository to your machine, add the following to your **WORKSPACE** file:
@@ -32,4 +32,4 @@ load("@standalone_cc_toolchain//:cc_configure.bzl", "cc_configure")
 cc_configure()
 ```
 
-Add `build --crosstool_top=@standalone_local_config_cc//:toolchain` to your **bazelrc** file.
+Add `build --crosstool_top=@standalone_local_config_cc//:toolchain --host_crosstool_top=@standalone_local_config_cc//:toolchain` to your **bazelrc** file.
