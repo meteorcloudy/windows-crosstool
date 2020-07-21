@@ -703,8 +703,8 @@ def _get_clang_cl_vars(repository_ctx, paths, msvc_vars):
 def configure_windows_toolchain(repository_ctx):
     """Configure C++ toolchain on Windows."""
     paths = resolve_labels(repository_ctx, [
-        "@bazel_tools//tools/cpp:BUILD.windows.tpl",
-        "@bazel_tools//tools/cpp:windows_cc_toolchain_config.bzl",
+        "@standalone_cc_toolchain//:BUILD.windows.tpl",
+        "@standalone_cc_toolchain//:windows_cc_toolchain_config.bzl",
         "@bazel_tools//tools/cpp:armeabi_cc_toolchain_config.bzl",
         "@bazel_tools//tools/cpp:vc_installation_error.bat.tpl",
         "@bazel_tools//tools/cpp:msys_gcc_installation_error.bat",
@@ -712,7 +712,7 @@ def configure_windows_toolchain(repository_ctx):
     ])
 
     repository_ctx.symlink(
-        paths["@bazel_tools//tools/cpp:windows_cc_toolchain_config.bzl"],
+        paths["@standalone_cc_toolchain//:windows_cc_toolchain_config.bzl"],
         "windows_cc_toolchain_config.bzl",
     )
     repository_ctx.symlink(
@@ -732,6 +732,6 @@ def configure_windows_toolchain(repository_ctx):
 
     repository_ctx.template(
         "BUILD",
-        paths["@bazel_tools//tools/cpp:BUILD.windows.tpl"],
+        paths["@standalone_cc_toolchain//:BUILD.windows.tpl"],
         template_vars,
     )

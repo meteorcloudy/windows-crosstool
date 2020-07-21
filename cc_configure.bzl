@@ -13,7 +13,7 @@
 # limitations under the License.
 """Rules for configuring the C++ toolchain (experimental)."""
 
-load("@bazel_tools//tools/cpp:windows_cc_configure.bzl", "configure_windows_toolchain")
+load(":windows_cc_configure.bzl", "configure_windows_toolchain")
 load("@bazel_tools//tools/cpp:osx_cc_configure.bzl", "configure_osx_toolchain")
 load("@bazel_tools//tools/cpp:unix_cc_configure.bzl", "configure_unix_toolchain")
 load(
@@ -175,10 +175,10 @@ cc_autoconf = repository_rule(
 
 def cc_configure():
     """A C++ configuration rules that generate the crosstool file."""
-    cc_autoconf_toolchains(name = "local_config_cc_toolchains")
-    cc_autoconf(name = "local_config_cc")
-    native.bind(name = "cc_toolchain", actual = "@local_config_cc//:toolchain")
+    cc_autoconf_toolchains(name = "standalone_local_config_cc_toolchains")
+    cc_autoconf(name = "standalone_local_config_cc")
+    native.bind(name = "cc_toolchain", actual = "@standalone_local_config_cc//:toolchain")
     native.register_toolchains(
         # Use register_toolchain's target pattern expansion to register all toolchains in the package.
-        "@local_config_cc_toolchains//:all",
+        "@standalone_local_config_cc_toolchains//:all",
     )
